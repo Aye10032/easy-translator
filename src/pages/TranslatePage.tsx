@@ -4,8 +4,7 @@ import { Link } from "react-router-dom";
 import { defaultSettings, providerLabels } from "../ai/providers";
 import { translateText } from "../ai/translate";
 import type { ModelSettings } from "../ai/types";
-import { getApiKey } from "../lib/credentials";
-import { loadSettings } from "../lib/settings";
+import { getApiKey, loadSettings } from "../lib/settings";
 
 const languages = ["自动检测", "中文", "英语", "日语", "韩语", "法语", "德语", "西班牙语"];
 

@@ -21,7 +21,7 @@ export default function App() {
           <NavLink to="/settings"><Settings size={18} />模型设置</NavLink>
         </nav>
 
-        <p className="sidebar-note">API Key 保存在系统凭据库中</p>
+        <p className="sidebar-note">API Key 仅保存在本机应用配置中</p>
       </aside>
 
       <main className="main-content">

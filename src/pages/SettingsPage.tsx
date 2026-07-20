@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { Check, Eye, EyeOff, LoaderCircle, Save, ShieldCheck } from "lucide-react";
 import { defaultSettings, providerLabels, providerPresets } from "../ai/providers";
 import type { ModelSettings, ProviderId } from "../ai/types";
-import { getApiKey, saveApiKey } from "../lib/credentials";
-import { loadSettings, saveSettings } from "../lib/settings";
+import { getApiKey, loadSettings, saveApiKey, saveSettings } from "../lib/settings";
 
 export function SettingsPage() {
   const [settings, setSettings] = useState<ModelSettings>(defaultSettings);
@@ -41,10 +40,8 @@ export function SettingsPage() {
     setSaving(true);
     setMessage("");
     try {
-      await Promise.all([
-        saveSettings({ ...settings, baseUrl: settings.baseUrl.trim(), model: settings.model.trim() }),
-        saveApiKey(settings.provider, apiKey.trim()),
-      ]);
+      await saveSettings({ ...settings, baseUrl: settings.baseUrl.trim(), model: settings.model.trim() });
+      await saveApiKey(settings.provider, apiKey.trim());
       setMessage("配置已保存，可以开始翻译。")
     } catch (error) {
       setMessage(`保存失败：${String(error)}`);
@@ -83,7 +80,7 @@ export function SettingsPage() {
               <button type="button" className="icon-button" onClick={() => setShowKey(!showKey)} aria-label={showKey ? "隐藏密钥" : "显示密钥"}>{showKey ? <EyeOff size={18} /> : <Eye size={18} />}</button>
             </div>
           </label>
-          <div className="security-note"><ShieldCheck size={18} /><span><strong>安全存储</strong>API Key 将写入操作系统凭据库，不会进入设置文件。</span></div>
+          <div className="security-note"><ShieldCheck size={18} /><span><strong>仅保存在本机</strong>API Key 将写入应用配置，不会上传或同步。</span></div>
         </div>
 
         <div className="form-section compact-section">
