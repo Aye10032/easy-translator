@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "easy-translater",
-        "width": 800,
-        "height": 600
+        "title": "Easy Translator",
+        "width": 1100,
+        "height": 720,
+        "minWidth": 760,
+        "minHeight": 580
       }
     ],
     "security": {
