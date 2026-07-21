@@ -1,4 +1,4 @@
-import type { ModelSettings, ProviderId } from "./types";
+import type { ModelProfile, ModelSettings, ProviderId } from "./types";
 
 export const providerPresets: Record<Exclude<ProviderId, "custom">, Pick<ModelSettings, "baseUrl" | "model">> = {
   openai: { baseUrl: "https://api.openai.com/v1", model: "gpt-4o-mini" },
@@ -11,6 +11,12 @@ export const defaultSettings: ModelSettings = {
   ...providerPresets.openai,
   reasoningEnabled: false,
   reasoningEffort: "medium",
+};
+
+export const defaultProfile: ModelProfile = {
+  id: "default",
+  name: "默认模型",
+  ...defaultSettings,
 };
 
 export const providerLabels: Record<ProviderId, string> = {

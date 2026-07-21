@@ -9,6 +9,16 @@ export interface ModelSettings {
   reasoningEffort: ReasoningEffort;
 }
 
+export interface ModelProfile extends ModelSettings {
+  id: string;
+  name: string;
+}
+
+export interface ModelProfilesState {
+  activeModelId: string;
+  profiles: ModelProfile[];
+}
+
 export interface TranslateInput {
   text: string;
   sourceLanguage: string;

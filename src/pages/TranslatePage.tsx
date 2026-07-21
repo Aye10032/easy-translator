@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRightLeft, Copy, Languages, LoaderCircle, Settings2, Square, WandSparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { defaultSettings, providerLabels } from "../ai/providers";
+import { defaultProfile } from "../ai/providers";
 import { translateText } from "../ai/translate";
-import type { ModelSettings } from "../ai/types";
-import { getApiKey, loadSettings } from "../lib/settings";
+import type { ModelProfile } from "../ai/types";
+import { getApiKey, loadModelProfiles, loadSettings, setActiveModel } from "../lib/settings";
 
 const languages = ["自动检测", "中文", "英语", "日语", "韩语", "法语", "德语", "西班牙语"];
 
@@ -42,7 +42,8 @@ async function revealChunk(
 }
 
 export function TranslatePage() {
-  const [settings, setSettings] = useState<ModelSettings>(defaultSettings);
+  const [profiles, setProfiles] = useState<ModelProfile[]>([defaultProfile]);
+  const [settings, setSettings] = useState<ModelProfile>(defaultProfile);
   const [sourceLanguage, setSourceLanguage] = useState("自动检测");
   const [targetLanguage, setTargetLanguage] = useState("英语");
   const [source, setSource] = useState("");
@@ -51,7 +52,21 @@ export function TranslatePage() {
   const [translating, setTranslating] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => { void loadSettings().then(setSettings); }, []);
+  useEffect(() => {
+    void loadModelProfiles().then((state) => {
+      setProfiles(state.profiles);
+      setSettings(state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0]);
+    });
+  }, []);
+
+  async function changeProfile(modelId: string) {
+    try {
+      setSettings(await setActiveModel(modelId));
+      setError("");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
+  }
 
   function swapLanguages() {
     if (sourceLanguage === "自动检测") return;
@@ -72,7 +87,7 @@ export function TranslatePage() {
     try {
       const currentSettings = await loadSettings();
       setSettings(currentSettings);
-      const apiKey = await getApiKey(currentSettings.provider);
+      const apiKey = await getApiKey(currentSettings.id);
       if (!apiKey) throw new Error("尚未配置 API Key，请先前往模型设置。")
 
       let content = "";
@@ -94,7 +109,13 @@ export function TranslatePage() {
     <section className="page translate-page">
       <header className="page-header">
         <div><span className="eyebrow">TRANSLATE</span><h1>让表达跨越语言</h1><p>由你选择的大模型提供自然、准确的翻译。</p></div>
-        <Link className="model-chip" to="/settings"><span className="online-dot" />{providerLabels[settings.provider]} · {settings.model}<Settings2 size={15} /></Link>
+        <div className="model-switcher">
+          <span className="online-dot" />
+          <select value={settings.id} onChange={(event) => void changeProfile(event.target.value)} disabled={translating} aria-label="当前模型">
+            {profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.name} · {profile.model}</option>)}
+          </select>
+          <Link className="model-settings-link" to="/settings" aria-label="管理模型配置"><Settings2 size={16} /></Link>
+        </div>
       </header>
 
       <div className="language-bar">

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Check, Eye, EyeOff, LoaderCircle, Save, ShieldCheck } from "lucide-react";
-import { defaultSettings, providerLabels, providerPresets } from "../ai/providers";
-import type { ModelSettings, ProviderId, ReasoningEffort } from "../ai/types";
-import { getApiKey, loadSettings, saveApiKey, saveSettings } from "../lib/settings";
+import { Check, Eye, EyeOff, LoaderCircle, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { defaultProfile, providerLabels, providerPresets } from "../ai/providers";
+import type { ModelProfile, ProviderId, ReasoningEffort } from "../ai/types";
+import { deleteModelProfile, getApiKey, loadModelProfiles, saveApiKey, saveModelProfile, setActiveModel } from "../lib/settings";
 
 export function SettingsPage() {
-  const [settings, setSettings] = useState<ModelSettings>(defaultSettings);
+  const [profiles, setProfiles] = useState<ModelProfile[]>([defaultProfile]);
+  const [settings, setSettings] = useState<ModelProfile>(defaultProfile);
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -13,35 +14,80 @@ export function SettingsPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    void loadSettings().then(async (value) => {
-      setSettings(value);
-      setApiKey((await getApiKey(value.provider)) ?? "");
+    void loadModelProfiles().then(async (state) => {
+      const active = state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0];
+      setProfiles(state.profiles);
+      setSettings(active);
+      setApiKey((await getApiKey(active.id)) ?? "");
     }).catch(() => setMessage("读取配置失败，请确认应用权限。"))
       .finally(() => setLoading(false));
   }, []);
 
-  async function changeProvider(provider: ProviderId) {
+  async function changeProfile(modelId: string) {
+    setMessage("");
+    try {
+      const profile = await setActiveModel(modelId);
+      setSettings(profile);
+      setApiKey((await getApiKey(profile.id)) ?? "");
+      setShowKey(false);
+    } catch (error) {
+      setMessage(`切换失败：${String(error)}`);
+    }
+  }
+
+  async function addProfile() {
+    const profile: ModelProfile = {
+      ...defaultProfile,
+      id: crypto.randomUUID(),
+      name: `模型 ${profiles.length + 1}`,
+    };
+    try {
+      const state = await saveModelProfile(profile);
+      setProfiles(state.profiles);
+      setSettings(profile);
+      setApiKey("");
+      setShowKey(false);
+      setMessage("已新建模型配置，请填写并保存。")
+    } catch (error) {
+      setMessage(`新建失败：${String(error)}`);
+    }
+  }
+
+  async function removeProfile() {
+    if (profiles.length <= 1 || !window.confirm(`确定删除“${settings.name}”及其 API Key 吗？`)) return;
+    try {
+      const state = await deleteModelProfile(settings.id);
+      const active = state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0];
+      setProfiles(state.profiles);
+      setSettings(active);
+      setApiKey((await getApiKey(active.id)) ?? "");
+      setShowKey(false);
+      setMessage("模型配置已删除。");
+    } catch (error) {
+      setMessage(`删除失败：${String(error)}`);
+    }
+  }
+
+  function changeProvider(provider: ProviderId) {
     const preset = provider === "custom" ? null : providerPresets[provider];
     setSettings((current) => ({ ...current, provider, ...(preset ?? {}) }));
-    try {
-      setApiKey((await getApiKey(provider)) ?? "");
-    } catch {
-      setApiKey("");
-    }
   }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!settings.baseUrl.trim() || !settings.model.trim() || !apiKey.trim()) {
-      setMessage("请填写 Base URL、模型名称和 API Key。")
+    if (!settings.name.trim() || !settings.baseUrl.trim() || !settings.model.trim() || !apiKey.trim()) {
+      setMessage("请填写配置名称、Base URL、模型名称和 API Key。")
       return;
     }
 
     setSaving(true);
     setMessage("");
     try {
-      await saveSettings({ ...settings, baseUrl: settings.baseUrl.trim(), model: settings.model.trim() });
-      await saveApiKey(settings.provider, apiKey.trim());
+      const saved = { ...settings, name: settings.name.trim(), baseUrl: settings.baseUrl.trim(), model: settings.model.trim() };
+      await saveApiKey(saved.id, apiKey.trim());
+      const state = await saveModelProfile(saved);
+      setProfiles(state.profiles);
+      setSettings(saved);
       setMessage("配置已保存，可以开始翻译。")
     } catch (error) {
       setMessage(`保存失败：${String(error)}`);
@@ -55,14 +101,26 @@ export function SettingsPage() {
   return (
     <section className="page narrow-page">
       <header className="page-header">
-        <div><span className="eyebrow">SETTINGS</span><h1>模型设置</h1><p>配置一个兼容 OpenAI Chat Completions 的模型服务。</p></div>
+        <div><span className="eyebrow">SETTINGS</span><h1>模型设置</h1><p>保存多个兼容 OpenAI Chat Completions 的模型服务，并随时切换。</p></div>
       </header>
+
+      <div className="profile-manager">
+        <label>当前模型配置
+          <select value={settings.id} onChange={(event) => void changeProfile(event.target.value)}>
+            {profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.name} · {profile.model}</option>)}
+          </select>
+        </label>
+        <button type="button" className="secondary-button" onClick={() => void addProfile()}><Plus size={17} />新建</button>
+        <button type="button" className="danger-icon-button" onClick={() => void removeProfile()} disabled={profiles.length <= 1} aria-label="删除当前模型配置"><Trash2 size={17} /></button>
+      </div>
 
       <form className="settings-card" onSubmit={submit}>
         <div className="form-section">
-          <div className="section-title"><span>1</span><div><h2>模型服务</h2><p>选择常用服务，或填写自定义兼容接口。</p></div></div>
+          <div className="section-title"><span>1</span><div><h2>模型服务</h2><p>为配置命名，然后选择常用服务或填写自定义兼容接口。</p></div></div>
+          <label>配置名称<input value={settings.name} onChange={(event) => setSettings({ ...settings, name: event.target.value })} placeholder="例如：日常翻译" /></label>
+          <div className="form-spacer" />
           <label>服务商
-            <select value={settings.provider} onChange={(event) => void changeProvider(event.target.value as ProviderId)}>
+            <select value={settings.provider} onChange={(event) => changeProvider(event.target.value as ProviderId)}>
               {Object.entries(providerLabels).map(([id, label]) => <option value={id} key={id}>{label}</option>)}
             </select>
           </label>
