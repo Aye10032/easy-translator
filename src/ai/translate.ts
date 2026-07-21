@@ -1,4 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { streamText } from "ai";
 import type { TranslateInput } from "./types";
 
@@ -7,6 +8,7 @@ export async function* translateText(input: TranslateInput): AsyncGenerator<stri
     apiKey: input.apiKey,
     baseURL: input.settings.baseUrl.replace(/\/$/, ""),
     name: input.settings.provider,
+    fetch: tauriFetch,
   });
 
   const result = streamText({

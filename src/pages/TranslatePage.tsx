@@ -48,7 +48,10 @@ export function TranslatePage() {
         setTranslation(content);
       }
     } catch (cause) {
-      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
+      if (!controller.signal.aborted) {
+        const message = cause instanceof Error ? cause.message : String(cause);
+        setError(message);
+      }
     } finally {
       setTranslating(false);
       controllerRef.current = null;
@@ -77,8 +80,15 @@ export function TranslatePage() {
 
         <div className="text-panel result-panel">
           <div className="panel-label"><span>译文</span>{translation && <button className="icon-button" onClick={() => void navigator.clipboard.writeText(translation)} aria-label="复制译文"><Copy size={17} /></button>}</div>
-          {translation ? <div className="translation-output">{translation}</div> : <div className="empty-result"><Languages size={32} /><span>译文将在这里显示</span></div>}
-          {error && <div className="error-message">{error}</div>}
+          {translation ? (
+            <div className="translation-output">{translation}</div>
+          ) : error ? (
+            <div className="result-feedback error-feedback"><span>翻译失败</span><small>{error}</small></div>
+          ) : translating ? (
+            <div className="result-feedback"><LoaderCircle className="spin" size={28} /><span>正在连接模型…</span></div>
+          ) : (
+            <div className="empty-result"><Languages size={32} /><span>译文将在这里显示</span></div>
+          )}
         </div>
       </div>
 
@@ -86,6 +96,7 @@ export function TranslatePage() {
         {translating ? <button className="secondary-button" onClick={() => controllerRef.current?.abort()}><Square size={16} />停止生成</button> : <button className="primary-button translate-button" onClick={() => void runTranslation()} disabled={!source.trim()}><WandSparkles size={18} />开始翻译</button>}
         {translating && <span className="stream-status"><LoaderCircle className="spin" size={16} />正在生成译文</span>}
       </div>
+
     </section>
   );
 }

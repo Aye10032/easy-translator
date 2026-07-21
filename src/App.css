@@ -60,6 +60,10 @@ textarea::placeholder { color: #abb2ae; }
 .translation-output { flex: 1; padding: 16px 0; white-space: pre-wrap; color: #1d2a24; font-size: 17px; line-height: 1.8; }
 .empty-result { flex: 1; display: grid; place-content: center; justify-items: center; gap: 12px; color: #adb5b0; font-size: 13px; }
 .empty-result svg { color: #cad0cc; }
+.result-feedback { flex: 1; display: grid; place-content: center; justify-items: center; gap: 10px; padding: 24px; color: #77837d; text-align: center; font-size: 13px; }
+.error-feedback { color: #9f3d36; }
+.error-feedback span { font-weight: 700; }
+.error-feedback small { max-width: 420px; color: #a95a54; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 .panel-actions { min-height: 30px; display: flex; justify-content: flex-end; }
 .text-button { border: 0; color: #85908a; background: transparent; font-size: 12px; }
 .translate-actions { min-height: 68px; display: flex; align-items: center; justify-content: center; gap: 14px; }
@@ -69,7 +73,6 @@ textarea::placeholder { color: #abb2ae; }
 .secondary-button { border: 1px solid var(--border); color: #3c4943; background: white; }
 .translate-button { min-width: 150px; }
 .stream-status { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; }
-.error-message { margin-top: auto; padding: 10px 12px; color: #9f3d36; background: #fff0ee; border-radius: 8px; font-size: 12px; }
 
 .settings-card { overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: white; box-shadow: 0 16px 45px rgba(34,56,45,.06); }
 .form-section { padding: 26px 30px 28px; border-bottom: 1px solid #edf0ee; }
