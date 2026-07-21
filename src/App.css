@@ -93,6 +93,13 @@ input, select { width: 100%; min-height: 42px; padding: 0 12px; border: 1px soli
 input:focus, select:focus { border-color: #58a082; box-shadow: 0 0 0 3px rgba(51,140,102,.1); }
 .form-grid { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; margin-top: 16px; }
 .form-spacer { height: 16px; }
+.model-field { display: grid; align-content: start; gap: 8px; }
+.model-field > label { display: block; }
+.model-input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.fetch-models-button { min-height: 42px; padding: 0 12px; white-space: nowrap; font-size: 12px; }
+.available-model-select { min-width: 0; }
+.model-list-note { color: #a0443d; font-size: 11px; font-weight: 400; line-height: 1.5; overflow-wrap: anywhere; }
+.model-list-note.success { color: var(--green); }
 .input-action { position: relative; }
 .input-action input { padding-right: 44px; }
 .input-action .icon-button { position: absolute; right: 6px; top: 6px; width: 30px; height: 30px; }

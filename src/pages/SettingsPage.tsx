@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Check, Eye, EyeOff, LoaderCircle, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { Check, Eye, EyeOff, LoaderCircle, Plus, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { listAvailableModels } from "../ai/models";
 import { defaultProfile, providerLabels, providerPresets } from "../ai/providers";
 import type { ModelProfile, ProviderId, ReasoningEffort } from "../ai/types";
 import { deleteModelProfile, getApiKey, loadModelProfiles, saveApiKey, saveModelProfile, setActiveModel } from "../lib/settings";
@@ -11,7 +12,15 @@ export function SettingsPage() {
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const [modelListMessage, setModelListMessage] = useState("");
   const [message, setMessage] = useState("");
+
+  function clearModelList() {
+    setAvailableModels([]);
+    setModelListMessage("");
+  }
 
   useEffect(() => {
     void loadModelProfiles().then(async (state) => {
@@ -30,6 +39,7 @@ export function SettingsPage() {
       setSettings(profile);
       setApiKey((await getApiKey(profile.id)) ?? "");
       setShowKey(false);
+      clearModelList();
     } catch (error) {
       setMessage(`切换失败：${String(error)}`);
     }
@@ -47,6 +57,7 @@ export function SettingsPage() {
       setSettings(profile);
       setApiKey("");
       setShowKey(false);
+      clearModelList();
       setMessage("已新建模型配置，请填写并保存。")
     } catch (error) {
       setMessage(`新建失败：${String(error)}`);
@@ -62,6 +73,7 @@ export function SettingsPage() {
       setSettings(active);
       setApiKey((await getApiKey(active.id)) ?? "");
       setShowKey(false);
+      clearModelList();
       setMessage("模型配置已删除。");
     } catch (error) {
       setMessage(`删除失败：${String(error)}`);
@@ -71,6 +83,28 @@ export function SettingsPage() {
   function changeProvider(provider: ProviderId) {
     const preset = provider === "custom" ? null : providerPresets[provider];
     setSettings((current) => ({ ...current, provider, ...(preset ?? {}) }));
+    clearModelList();
+  }
+
+  async function fetchModels() {
+    if (!settings.baseUrl.trim() || !apiKey.trim()) {
+      setModelListMessage("请先填写 Base URL 和 API Key。");
+      return;
+    }
+
+    setLoadingModels(true);
+    setAvailableModels([]);
+    setModelListMessage("");
+    try {
+      const models = await listAvailableModels(settings.baseUrl, apiKey);
+      setAvailableModels(models);
+      setModelListMessage(`已获取 ${models.length} 个模型，可以从下方选择。`);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      setModelListMessage(`获取失败：${detail}；仍可手动填写模型名称。`);
+    } finally {
+      setLoadingModels(false);
+    }
   }
 
   async function submit(event: React.FormEvent) {
@@ -125,8 +159,28 @@ export function SettingsPage() {
             </select>
           </label>
           <div className="form-grid">
-            <label>Base URL<input value={settings.baseUrl} onChange={(event) => setSettings({ ...settings, baseUrl: event.target.value })} placeholder="https://api.example.com/v1" /></label>
-            <label>模型名称<input value={settings.model} onChange={(event) => setSettings({ ...settings, model: event.target.value })} placeholder="model-name" /></label>
+            <label>Base URL<input value={settings.baseUrl} onChange={(event) => { setSettings({ ...settings, baseUrl: event.target.value }); clearModelList(); }} placeholder="https://api.example.com/v1" /></label>
+            <div className="model-field">
+              <label htmlFor="model-name">模型名称</label>
+              <div className="model-input-row">
+                <input id="model-name" value={settings.model} onChange={(event) => setSettings({ ...settings, model: event.target.value })} placeholder="model-name" />
+                <button type="button" className="secondary-button fetch-models-button" onClick={() => void fetchModels()} disabled={loadingModels}>
+                  <RefreshCw className={loadingModels ? "spin" : ""} size={15} />{loadingModels ? "获取中" : "获取列表"}
+                </button>
+              </div>
+              {availableModels.length > 0 && (
+                <select
+                  className="available-model-select"
+                  value={availableModels.includes(settings.model) ? settings.model : ""}
+                  onChange={(event) => event.target.value && setSettings({ ...settings, model: event.target.value })}
+                  aria-label="从可用模型中选择"
+                >
+                  <option value="">从可用模型中选择…</option>
+                  {availableModels.map((model) => <option value={model} key={model}>{model}</option>)}
+                </select>
+              )}
+              {modelListMessage && <span className={`model-list-note${availableModels.length ? " success" : ""}`}>{modelListMessage}</span>}
+            </div>
           </div>
         </div>
 
@@ -134,7 +188,7 @@ export function SettingsPage() {
           <div className="section-title"><span>2</span><div><h2>访问凭据</h2><p>密钥仅用于当前模型服务。</p></div></div>
           <label>API Key
             <div className="input-action">
-              <input type={showKey ? "text" : "password"} value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="sk-..." autoComplete="off" />
+              <input type={showKey ? "text" : "password"} value={apiKey} onChange={(event) => { setApiKey(event.target.value); clearModelList(); }} placeholder="sk-..." autoComplete="off" />
               <button type="button" className="icon-button" onClick={() => setShowKey(!showKey)} aria-label={showKey ? "隐藏密钥" : "显示密钥"}>{showKey ? <EyeOff size={18} /> : <Eye size={18} />}</button>
             </div>
           </label>
