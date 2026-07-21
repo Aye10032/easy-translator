@@ -1,7 +1,8 @@
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
-import { History, Languages, Settings } from "lucide-react";
+import { History, Info, Languages, Settings } from "lucide-react";
 import { Toaster } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
+import { AboutPage } from "./pages/AboutPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TranslatePage } from "./pages/TranslatePage";
@@ -31,6 +32,17 @@ export default function App() {
               </Tooltip>
             ))}
           </nav>
+          <nav className="rail-navigation rail-navigation-secondary" aria-label="应用信息">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <NavLink to="/about" aria-label="关于">
+                  <Info size={20} />
+                  <span>关于</span>
+                </NavLink>
+              </TooltipTrigger>
+              <TooltipContent side="right">关于</TooltipContent>
+            </Tooltip>
+          </nav>
         </aside>
 
         <main className="app-content">
@@ -38,6 +50,7 @@ export default function App() {
             <Route path="/translate" element={<TranslatePage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="*" element={<Navigate to="/translate" replace />} />
           </Routes>
         </main>
