@@ -139,11 +139,7 @@ export function HistoryPage() {
   return (
     <section className="history-page">
       <header className="history-page-header">
-        <div>
-          <span>本机记录</span>
-          <h1>翻译历史</h1>
-          <p>查看、复制或再次使用过去生成的译文。</p>
-        </div>
+        <h1>翻译历史</h1>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="secondary" disabled={history.length === 0}><Trash2 size={16} />清空记录</Button>
