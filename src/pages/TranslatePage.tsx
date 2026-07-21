@@ -8,6 +8,39 @@ import { getApiKey, loadSettings } from "../lib/settings";
 
 const languages = ["自动检测", "中文", "英语", "日语", "韩语", "法语", "德语", "西班牙语"];
 
+function nextAnimationFrame() {
+  return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+}
+
+async function revealChunk(
+  current: string,
+  chunk: string,
+  signal: AbortSignal,
+  update: (value: string) => void,
+) {
+  const characters = Array.from(chunk);
+
+  if (characters.length <= 12) {
+    const next = current + chunk;
+    update(next);
+    return next;
+  }
+
+  // Some OpenAI-compatible services buffer multiple tokens into one large
+  // SSE chunk. Reveal large chunks over at most ~45 frames for a consistent
+  // streaming experience without noticeably delaying the final result.
+  const batchSize = Math.max(2, Math.ceil(characters.length / 45));
+  let next = current;
+  for (let index = 0; index < characters.length; index += batchSize) {
+    if (signal.aborted) return next;
+    next += characters.slice(index, index + batchSize).join("");
+    update(next);
+    await nextAnimationFrame();
+  }
+
+  return next;
+}
+
 export function TranslatePage() {
   const [settings, setSettings] = useState<ModelSettings>(defaultSettings);
   const [sourceLanguage, setSourceLanguage] = useState("自动检测");
@@ -44,8 +77,7 @@ export function TranslatePage() {
 
       let content = "";
       for await (const chunk of translateText({ text: source, sourceLanguage, targetLanguage, settings: currentSettings, apiKey, abortSignal: controller.signal })) {
-        content += chunk;
-        setTranslation(content);
+        content = await revealChunk(content, chunk, controller.signal, setTranslation);
       }
     } catch (cause) {
       if (!controller.signal.aborted) {
