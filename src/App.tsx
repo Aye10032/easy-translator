@@ -1,13 +1,15 @@
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
-import { Languages, Settings } from "lucide-react";
+import { History, Languages, Settings } from "lucide-react";
 import { Toaster } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
+import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TranslatePage } from "./pages/TranslatePage";
 import "./App.css";
 
 const navigation = [
   { to: "/translate", label: "翻译", icon: Languages },
+  { to: "/history", label: "历史记录", icon: History },
   { to: "/settings", label: "模型设置", icon: Settings },
 ];
 
@@ -34,6 +36,7 @@ export default function App() {
         <main className="app-content">
           <Routes>
             <Route path="/translate" element={<TranslatePage />} />
+            <Route path="/history" element={<HistoryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/translate" replace />} />
           </Routes>

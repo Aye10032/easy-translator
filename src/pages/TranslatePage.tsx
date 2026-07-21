@@ -10,7 +10,7 @@ import {
   WandSparkles,
   X,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import type { ModelProfile } from "../ai/types";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
+import { addTranslationHistory, getTranslationHistoryItem } from "../lib/history";
 import { getApiKey, loadModelProfiles, loadSettings, setActiveModel } from "../lib/settings";
 
 const languages = ["自动检测", "中文", "英语", "日语", "韩语", "法语", "德语", "西班牙语"];
@@ -48,6 +49,7 @@ async function revealChunk(current: string, chunk: string, signal: AbortSignal, 
 }
 
 export function TranslatePage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [profiles, setProfiles] = useState<ModelProfile[]>([defaultProfile]);
   const [settings, setSettings] = useState<ModelProfile>(defaultProfile);
   const [sourceLanguage, setSourceLanguage] = useState("自动检测");
@@ -57,6 +59,7 @@ export function TranslatePage() {
   const [error, setError] = useState("");
   const [translating, setTranslating] = useState(false);
   const controllerRef = useRef<AbortController | null>(null);
+  const restoredHistoryIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     void loadModelProfiles().then((state) => {
@@ -64,6 +67,28 @@ export function TranslatePage() {
       setSettings(state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0]);
     });
   }, []);
+
+  useEffect(() => {
+    const historyId = searchParams.get("history");
+    if (!historyId || restoredHistoryIdRef.current === historyId) return;
+    restoredHistoryIdRef.current = historyId;
+
+    void getTranslationHistoryItem(historyId)
+      .then((item) => {
+        if (!item) {
+          toast.error("历史记录不存在或已被删除");
+          return;
+        }
+        setSourceLanguage(item.sourceLanguage);
+        setTargetLanguage(item.targetLanguage);
+        setSource(item.sourceText);
+        setTranslation(item.translatedText);
+        setError("");
+        toast.success("已恢复历史记录");
+      })
+      .catch((cause) => toast.error("读取历史记录失败", { description: String(cause) }))
+      .finally(() => setSearchParams({}, { replace: true }));
+  }, [searchParams, setSearchParams]);
 
   async function changeProfile(modelId: string) {
     try {
@@ -115,6 +140,22 @@ export function TranslatePage() {
         abortSignal: controller.signal,
       })) {
         content = await revealChunk(content, chunk, controller.signal, setTranslation);
+      }
+
+      if (!controller.signal.aborted && content.trim()) {
+        try {
+          await addTranslationHistory({
+            sourceText: source,
+            translatedText: content,
+            sourceLanguage,
+            targetLanguage,
+            modelId: currentSettings.id,
+            profileName: currentSettings.name,
+            model: currentSettings.model,
+          });
+        } catch (historyError) {
+          toast.warning("译文已生成，但历史记录保存失败", { description: String(historyError) });
+        }
       }
     } catch (cause) {
       if (!controller.signal.aborted) {
