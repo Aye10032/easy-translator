@@ -199,6 +199,15 @@ export function HistoryPage() {
                   <span className="history-metadata"><Clock3 size={13} />{formatDateTime(selected.createdAt)}<i />{selected.profileName} · {selected.model}</span>
                 </div>
                 <div className="history-detail-actions">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild><Button className="history-delete-action" variant="ghost"><Trash2 size={15} />删除记录</Button></AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <div className="dialog-danger-icon"><Trash2 size={20} /></div>
+                      <AlertDialogTitle>删除这条翻译记录？</AlertDialogTitle>
+                      <AlertDialogDescription>原文和译文将从本机永久删除，此操作无法撤销。</AlertDialogDescription>
+                      <div className="dialog-actions"><AlertDialogCancel asChild><Button type="button" variant="secondary">取消</Button></AlertDialogCancel><AlertDialogAction asChild><Button type="button" variant="destructive" onClick={() => void removeSelected()}>确认删除</Button></AlertDialogAction></div>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <Button variant="secondary" onClick={() => void copyText(selected.translatedText)}><Copy size={15} />复制译文</Button>
                   <Button onClick={() => navigate(`/translate?history=${encodeURIComponent(selected.id)}`)}><RotateCcw size={15} />再次使用</Button>
                 </div>
@@ -214,19 +223,6 @@ export function HistoryPage() {
                   <div className="history-translated-text markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]}>{selected.translatedText}</ReactMarkdown></div>
                 </article>
               </div>
-
-              <footer className="history-detail-footer">
-                <span>该记录仅保存在当前设备</span>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild><Button variant="ghost" size="sm"><Trash2 size={14} />删除此记录</Button></AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <div className="dialog-danger-icon"><Trash2 size={20} /></div>
-                    <AlertDialogTitle>删除这条翻译记录？</AlertDialogTitle>
-                    <AlertDialogDescription>原文和译文将从本机永久删除，此操作无法撤销。</AlertDialogDescription>
-                    <div className="dialog-actions"><AlertDialogCancel asChild><Button type="button" variant="secondary">取消</Button></AlertDialogCancel><AlertDialogAction asChild><Button type="button" variant="destructive" onClick={() => void removeSelected()}>确认删除</Button></AlertDialogAction></div>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </footer>
             </>
           ) : (
             <div className="history-detail-empty"><FileClock size={30} /><strong>{history.length > 0 ? "选择一条翻译记录" : "历史记录会出现在这里"}</strong><span>{history.length > 0 ? "从左侧列表中选择要查看的内容" : "前往翻译页面完成第一次翻译"}</span>{history.length === 0 && <Button onClick={() => navigate("/translate")}><Languages size={16} />开始翻译</Button>}</div>

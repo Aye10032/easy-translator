@@ -171,23 +171,6 @@ export function TranslatePage() {
 
   return (
     <section className="workspace-page">
-      <div className="workspace-tools">
-        <div className="header-tools">
-          <Select value={settings.id} onValueChange={(value) => void changeProfile(value)} disabled={translating}>
-            <SelectTrigger className="model-select" aria-label="选择模型"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {profiles.map((profile) => <SelectItem value={profile.id} key={profile.id}>{profile.model}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button asChild variant="secondary" size="icon"><Link to="/settings" aria-label="管理模型"><Settings2 size={17} /></Link></Button>
-            </TooltipTrigger>
-            <TooltipContent>管理模型</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
-
       <div className="translation-workbench">
         <div className="language-toolbar">
           <div className="language-slot">
@@ -265,11 +248,27 @@ export function TranslatePage() {
 
         <footer className="workbench-footer">
           <div className="shortcut-hint"><kbd>Ctrl</kbd><span>+</span><kbd>Enter</kbd><span>开始翻译</span></div>
-          {translating ? (
-            <div className="generating-actions"><span><LoaderCircle className="spin" size={15} />正在生成译文</span><Button variant="secondary" onClick={() => controllerRef.current?.abort()}><Square size={15} />停止生成</Button></div>
-          ) : (
-            <Button size="lg" className="start-translation" onClick={() => void runTranslation()} disabled={!source.trim()}><WandSparkles size={18} />开始翻译</Button>
-          )}
+          <div className="workbench-actions">
+            <div className="footer-model-tools">
+              <Select value={settings.id} onValueChange={(value) => void changeProfile(value)} disabled={translating}>
+                <SelectTrigger className="model-select" aria-label="选择模型"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {profiles.map((profile) => <SelectItem value={profile.id} key={profile.id}>{profile.model}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild variant="secondary" size="icon"><Link to="/settings" aria-label="管理模型"><Settings2 size={17} /></Link></Button>
+                </TooltipTrigger>
+                <TooltipContent>管理模型</TooltipContent>
+              </Tooltip>
+            </div>
+            {translating ? (
+              <div className="generating-actions"><span><LoaderCircle className="spin" size={15} />正在生成译文</span><Button variant="secondary" onClick={() => controllerRef.current?.abort()}><Square size={15} />停止生成</Button></div>
+            ) : (
+              <Button size="lg" className="start-translation" onClick={() => void runTranslation()} disabled={!source.trim()}><WandSparkles size={18} />开始翻译</Button>
+            )}
+          </div>
         </footer>
       </div>
     </section>
