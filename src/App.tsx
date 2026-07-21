@@ -1,36 +1,45 @@
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { Languages, Settings } from "lucide-react";
+import { Toaster } from "sonner";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
 import { SettingsPage } from "./pages/SettingsPage";
 import { TranslatePage } from "./pages/TranslatePage";
 import "./App.css";
 
+const navigation = [
+  { to: "/translate", label: "翻译", icon: Languages },
+  { to: "/settings", label: "模型设置", icon: Settings },
+];
+
 export default function App() {
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark"><Languages size={22} /></div>
-          <div>
-            <strong>Easy Translator</strong>
-            <span>AI 翻译助手</span>
-          </div>
-        </div>
+    <TooltipProvider delayDuration={350}>
+      <div className="app-shell">
+        <aside className="app-rail">
+          <nav className="rail-navigation" aria-label="主导航">
+            {navigation.map(({ to, label, icon: Icon }) => (
+              <Tooltip key={to}>
+                <TooltipTrigger asChild>
+                  <NavLink to={to} aria-label={label}>
+                    <Icon size={20} />
+                    <span>{label}</span>
+                  </NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right">{label}</TooltipContent>
+              </Tooltip>
+            ))}
+          </nav>
+        </aside>
 
-        <nav className="nav-list" aria-label="主导航">
-          <NavLink to="/translate"><Languages size={18} />翻译</NavLink>
-          <NavLink to="/settings"><Settings size={18} />模型设置</NavLink>
-        </nav>
-
-        <p className="sidebar-note">API Key 仅保存在本机应用配置中</p>
-      </aside>
-
-      <main className="main-content">
-        <Routes>
-          <Route path="/translate" element={<TranslatePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/translate" replace />} />
-        </Routes>
-      </main>
-    </div>
+        <main className="app-content">
+          <Routes>
+            <Route path="/translate" element={<TranslatePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/translate" replace />} />
+          </Routes>
+        </main>
+      </div>
+      <Toaster position="top-center" richColors closeButton />
+    </TooltipProvider>
   );
 }

@@ -1,8 +1,38 @@
 import { useEffect, useState } from "react";
-import { Check, Eye, EyeOff, LoaderCircle, Plus, RefreshCw, Save, ShieldCheck, Trash2 } from "lucide-react";
+import {
+  Bot,
+  Check,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LoaderCircle,
+  Plus,
+  RefreshCw,
+  Save,
+  ShieldCheck,
+  SlidersHorizontal,
+  Trash2,
+} from "lucide-react";
+import { toast } from "sonner";
 import { listAvailableModels } from "../ai/models";
 import { defaultProfile, providerLabels, providerPresets } from "../ai/providers";
 import type { ModelProfile, ProviderId, ReasoningEffort } from "../ai/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alert-dialog";
+import { Button } from "../components/ui/button";
+import { Input } from "../components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Switch } from "../components/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
+import { cn } from "../lib/utils";
 import { deleteModelProfile, getApiKey, loadModelProfiles, saveApiKey, saveModelProfile, setActiveModel } from "../lib/settings";
 
 export function SettingsPage() {
@@ -23,16 +53,19 @@ export function SettingsPage() {
   }
 
   useEffect(() => {
-    void loadModelProfiles().then(async (state) => {
-      const active = state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0];
-      setProfiles(state.profiles);
-      setSettings(active);
-      setApiKey((await getApiKey(active.id)) ?? "");
-    }).catch(() => setMessage("读取配置失败，请确认应用权限。"))
+    void loadModelProfiles()
+      .then(async (state) => {
+        const active = state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0];
+        setProfiles(state.profiles);
+        setSettings(active);
+        setApiKey((await getApiKey(active.id)) ?? "");
+      })
+      .catch(() => setMessage("读取配置失败，请确认应用权限。"))
       .finally(() => setLoading(false));
   }, []);
 
   async function changeProfile(modelId: string) {
+    if (modelId === settings.id) return;
     setMessage("");
     try {
       const profile = await setActiveModel(modelId);
@@ -41,16 +74,14 @@ export function SettingsPage() {
       setShowKey(false);
       clearModelList();
     } catch (error) {
-      setMessage(`切换失败：${String(error)}`);
+      const detail = String(error);
+      setMessage(`切换失败：${detail}`);
+      toast.error("模型切换失败", { description: detail });
     }
   }
 
   async function addProfile() {
-    const profile: ModelProfile = {
-      ...defaultProfile,
-      id: crypto.randomUUID(),
-      name: `模型 ${profiles.length + 1}`,
-    };
+    const profile: ModelProfile = { ...defaultProfile, id: crypto.randomUUID(), name: `模型 ${profiles.length + 1}` };
     try {
       const state = await saveModelProfile(profile);
       setProfiles(state.profiles);
@@ -58,14 +89,15 @@ export function SettingsPage() {
       setApiKey("");
       setShowKey(false);
       clearModelList();
-      setMessage("已新建模型配置，请填写并保存。")
+      setMessage("已新建配置，请完善右侧信息并保存。");
+      toast.success("已新建模型配置");
     } catch (error) {
-      setMessage(`新建失败：${String(error)}`);
+      toast.error("新建失败", { description: String(error) });
     }
   }
 
   async function removeProfile() {
-    if (profiles.length <= 1 || !window.confirm(`确定删除“${settings.name}”及其 API Key 吗？`)) return;
+    if (profiles.length <= 1) return;
     try {
       const state = await deleteModelProfile(settings.id);
       const active = state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0];
@@ -74,9 +106,10 @@ export function SettingsPage() {
       setApiKey((await getApiKey(active.id)) ?? "");
       setShowKey(false);
       clearModelList();
-      setMessage("模型配置已删除。");
+      setMessage("");
+      toast.success("模型配置已删除");
     } catch (error) {
-      setMessage(`删除失败：${String(error)}`);
+      toast.error("删除失败", { description: String(error) });
     }
   }
 
@@ -98,7 +131,8 @@ export function SettingsPage() {
     try {
       const models = await listAvailableModels(settings.baseUrl, apiKey);
       setAvailableModels(models);
-      setModelListMessage(`已获取 ${models.length} 个模型，可以从下方选择。`);
+      setModelListMessage(`已获取 ${models.length} 个模型`);
+      toast.success(`已获取 ${models.length} 个可用模型`);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       setModelListMessage(`获取失败：${detail}；仍可手动填写模型名称。`);
@@ -110,7 +144,7 @@ export function SettingsPage() {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!settings.name.trim() || !settings.baseUrl.trim() || !settings.model.trim() || !apiKey.trim()) {
-      setMessage("请填写配置名称、Base URL、模型名称和 API Key。")
+      setMessage("请填写配置名称、Base URL、模型名称和 API Key。");
       return;
     }
 
@@ -122,111 +156,101 @@ export function SettingsPage() {
       const state = await saveModelProfile(saved);
       setProfiles(state.profiles);
       setSettings(saved);
-      setMessage("配置已保存，可以开始翻译。")
+      setMessage("所有更改均已保存");
+      toast.success("模型配置已保存");
     } catch (error) {
-      setMessage(`保存失败：${String(error)}`);
+      const detail = String(error);
+      setMessage(`保存失败：${detail}`);
+      toast.error("保存失败", { description: detail });
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <div className="page-state"><LoaderCircle className="spin" />正在读取配置…</div>;
+  if (loading) {
+    return <div className="page-loading"><div className="loading-orbit"><LoaderCircle className="spin" /></div><strong>正在读取配置</strong><span>很快就好</span></div>;
+  }
 
   return (
-    <section className="page narrow-page">
-      <header className="page-header">
-        <div><span className="eyebrow">SETTINGS</span><h1>模型设置</h1><p>保存多个兼容 OpenAI Chat Completions 的模型服务，并随时切换。</p></div>
-      </header>
+    <section className="settings-page">
+      <div className="settings-layout">
+        <aside className="profile-sidebar">
+          <div className="profile-sidebar-heading"><div><span>模型配置</span><small>{profiles.length} 个配置</small></div><Tooltip><TooltipTrigger asChild><Button size="icon-sm" variant="secondary" onClick={() => void addProfile()} aria-label="新建配置"><Plus size={16} /></Button></TooltipTrigger><TooltipContent>新建配置</TooltipContent></Tooltip></div>
 
-      <div className="profile-manager">
-        <label>当前模型配置
-          <select value={settings.id} onChange={(event) => void changeProfile(event.target.value)}>
-            {profiles.map((profile) => <option value={profile.id} key={profile.id}>{profile.name} · {profile.model}</option>)}
-          </select>
-        </label>
-        <button type="button" className="secondary-button" onClick={() => void addProfile()}><Plus size={17} />新建</button>
-        <button type="button" className="danger-icon-button" onClick={() => void removeProfile()} disabled={profiles.length <= 1} aria-label="删除当前模型配置"><Trash2 size={17} /></button>
-      </div>
+          <div className="profile-list">
+            {profiles.map((profile) => (
+              <button type="button" key={profile.id} className={cn("profile-list-item", settings.id === profile.id && "active")} onClick={() => void changeProfile(profile.id)}>
+                <span className="profile-icon"><Bot size={17} /></span>
+                <span className="profile-copy"><strong>{profile.name}</strong><small>{profile.model}</small></span>
+                <ChevronRight size={15} />
+              </button>
+            ))}
+          </div>
 
-      <form className="settings-card" onSubmit={submit}>
-        <div className="form-section">
-          <div className="section-title"><span>1</span><div><h2>模型服务</h2><p>为配置命名，然后选择常用服务或填写自定义兼容接口。</p></div></div>
-          <label>配置名称<input value={settings.name} onChange={(event) => setSettings({ ...settings, name: event.target.value })} placeholder="例如：日常翻译" /></label>
-          <div className="form-spacer" />
-          <label>服务商
-            <select value={settings.provider} onChange={(event) => changeProvider(event.target.value as ProviderId)}>
-              {Object.entries(providerLabels).map(([id, label]) => <option value={id} key={id}>{label}</option>)}
-            </select>
-          </label>
-          <div className="form-grid">
-            <label>Base URL<input value={settings.baseUrl} onChange={(event) => { setSettings({ ...settings, baseUrl: event.target.value }); clearModelList(); }} placeholder="https://api.example.com/v1" /></label>
-            <div className="model-field">
-              <label htmlFor="model-name">模型名称</label>
-              <div className="model-input-row">
-                <input id="model-name" value={settings.model} onChange={(event) => setSettings({ ...settings, model: event.target.value })} placeholder="model-name" />
-                <button type="button" className="secondary-button fetch-models-button" onClick={() => void fetchModels()} disabled={loadingModels}>
-                  <RefreshCw className={loadingModels ? "spin" : ""} size={15} />{loadingModels ? "获取中" : "获取列表"}
-                </button>
+        </aside>
+
+        <form className="settings-surface" onSubmit={submit}>
+          <div className="settings-surface-header">
+            <div><span>正在编辑</span><h2>{settings.name}</h2></div>
+            <AlertDialog>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild><Button type="button" variant="ghost" size="icon" disabled={profiles.length <= 1} aria-label="删除当前配置"><Trash2 size={17} /></Button></AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>删除配置</TooltipContent>
+              </Tooltip>
+              <AlertDialogContent>
+                <div className="dialog-danger-icon"><Trash2 size={20} /></div>
+                <AlertDialogTitle>删除“{settings.name}”？</AlertDialogTitle>
+                <AlertDialogDescription>该模型配置及保存在本机的 API Key 将一并删除，此操作无法撤销。</AlertDialogDescription>
+                <div className="dialog-actions"><AlertDialogCancel asChild><Button type="button" variant="secondary">取消</Button></AlertDialogCancel><AlertDialogAction asChild><Button type="button" variant="destructive" onClick={() => void removeProfile()}>确认删除</Button></AlertDialogAction></div>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          <div className="settings-form-body">
+            <section className="setting-section">
+              <div className="setting-section-title"><span className="section-icon"><Bot size={18} /></span><div><h3>模型服务</h3><p>选择预设服务，或连接任何兼容 OpenAI 的接口。</p></div></div>
+              <div className="field-grid two-columns">
+                <label className="field-label"><span>配置名称</span><Input value={settings.name} onChange={(event) => setSettings({ ...settings, name: event.target.value })} placeholder="例如：日常翻译" /></label>
+                <label className="field-label"><span>服务商</span>
+                  <Select value={settings.provider} onValueChange={(value) => changeProvider(value as ProviderId)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>{Object.entries(providerLabels).map(([id, label]) => <SelectItem value={id} key={id}>{label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </label>
               </div>
-              {availableModels.length > 0 && (
-                <select
-                  className="available-model-select"
-                  value={availableModels.includes(settings.model) ? settings.model : ""}
-                  onChange={(event) => event.target.value && setSettings({ ...settings, model: event.target.value })}
-                  aria-label="从可用模型中选择"
-                >
-                  <option value="">从可用模型中选择…</option>
-                  {availableModels.map((model) => <option value={model} key={model}>{model}</option>)}
-                </select>
-              )}
-              {modelListMessage && <span className={`model-list-note${availableModels.length ? " success" : ""}`}>{modelListMessage}</span>}
-            </div>
+              <label className="field-label field-spaced"><span>Base URL</span><Input value={settings.baseUrl} onChange={(event) => { setSettings({ ...settings, baseUrl: event.target.value }); clearModelList(); }} placeholder="https://api.example.com/v1" /></label>
+              <div className="field-label field-spaced"><span>模型名称</span>
+                <div className="model-input-row"><Input value={settings.model} onChange={(event) => setSettings({ ...settings, model: event.target.value })} placeholder="model-name" /><Button type="button" variant="secondary" onClick={() => void fetchModels()} disabled={loadingModels}>{loadingModels ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{loadingModels ? "获取中" : "获取列表"}</Button></div>
+                {availableModels.length > 0 && <Select value={availableModels.includes(settings.model) ? settings.model : undefined} onValueChange={(model) => setSettings({ ...settings, model })}><SelectTrigger className="available-model-select"><SelectValue placeholder="从可用模型中选择…" /></SelectTrigger><SelectContent>{availableModels.map((model) => <SelectItem value={model} key={model}>{model}</SelectItem>)}</SelectContent></Select>}
+                {modelListMessage && <small className={cn("field-message", availableModels.length > 0 && "success")}>{modelListMessage}</small>}
+              </div>
+            </section>
+
+            <section className="setting-section">
+              <div className="setting-section-title"><span className="section-icon"><KeyRound size={18} /></span><div><h3>访问凭据</h3><p>用于验证当前模型服务的访问权限。</p></div></div>
+              <label className="field-label"><span>API Key</span><div className="secret-input"><Input type={showKey ? "text" : "password"} value={apiKey} onChange={(event) => { setApiKey(event.target.value); clearModelList(); }} placeholder="sk-..." autoComplete="off" /><Button type="button" variant="ghost" size="icon-sm" onClick={() => setShowKey(!showKey)} aria-label={showKey ? "隐藏密钥" : "显示密钥"}>{showKey ? <EyeOff size={17} /> : <Eye size={17} />}</Button></div></label>
+              <div className="inline-security"><ShieldCheck size={16} /><span><strong>仅保存在本机</strong>应用只会将密钥发送给上方配置的模型服务。</span></div>
+            </section>
+
+            <section className="setting-section">
+              <div className="setting-section-title"><span className="section-icon"><SlidersHorizontal size={18} /></span><div><h3>思索设置</h3><p>为支持该能力的模型调整思维深度。</p></div></div>
+              <div className="toggle-setting"><div><strong>开启思索</strong><span>模型会在生成译文前进行更充分的推理。</span></div><Switch checked={settings.reasoningEnabled} onCheckedChange={(checked) => setSettings({ ...settings, reasoningEnabled: checked })} aria-label="开启思索" /></div>
+              <label className={cn("field-label field-spaced", !settings.reasoningEnabled && "disabled-field")}><span>思维深度</span>
+                <Select value={settings.reasoningEffort} disabled={!settings.reasoningEnabled} onValueChange={(value) => setSettings({ ...settings, reasoningEffort: value as ReasoningEffort })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="low">低 · 更快响应</SelectItem><SelectItem value="medium">中 · 平衡速度与质量</SelectItem><SelectItem value="high">高 · 更充分思索</SelectItem></SelectContent>
+                </Select>
+              </label>
+            </section>
           </div>
-        </div>
 
-        <div className="form-section">
-          <div className="section-title"><span>2</span><div><h2>访问凭据</h2><p>密钥仅用于当前模型服务。</p></div></div>
-          <label>API Key
-            <div className="input-action">
-              <input type={showKey ? "text" : "password"} value={apiKey} onChange={(event) => { setApiKey(event.target.value); clearModelList(); }} placeholder="sk-..." autoComplete="off" />
-              <button type="button" className="icon-button" onClick={() => setShowKey(!showKey)} aria-label={showKey ? "隐藏密钥" : "显示密钥"}>{showKey ? <EyeOff size={18} /> : <Eye size={18} />}</button>
-            </div>
-          </label>
-          <div className="security-note"><ShieldCheck size={18} /><span><strong>仅保存在本机</strong>API Key 将写入应用配置，不会上传或同步。</span></div>
-        </div>
-
-        <div className="form-section compact-section">
-          <div className="section-title"><span>3</span><div><h2>思索设置</h2><p>控制模型是否在回答前思索，以及投入的思维深度。</p></div></div>
-          <div className="reasoning-row">
-            <div className="reasoning-copy"><strong>开启思索</strong><span>仅对支持思索参数的模型生效。</span></div>
-            <label className="switch-control">
-              <input
-                type="checkbox"
-                checked={settings.reasoningEnabled}
-                onChange={(event) => setSettings({ ...settings, reasoningEnabled: event.target.checked })}
-              />
-              <span className="switch-track" aria-hidden="true"><span /></span>
-              <span className="sr-only">开启思索</span>
-            </label>
-          </div>
-          <label className={`reasoning-effort${settings.reasoningEnabled ? "" : " disabled"}`}>思维深度
-            <select
-              value={settings.reasoningEffort}
-              disabled={!settings.reasoningEnabled}
-              onChange={(event) => setSettings({ ...settings, reasoningEffort: event.target.value as ReasoningEffort })}
-            >
-              <option value="low">低 · 更快响应</option>
-              <option value="medium">中 · 平衡速度与质量</option>
-              <option value="high">高 · 更充分思索</option>
-            </select>
-          </label>
-        </div>
-
-        <footer className="form-footer">
-          <span className={message.includes("已保存") ? "success-message" : "status-message"}>{message && (message.includes("已保存") ? <Check size={16} /> : null)}{message}</span>
-          <button className="primary-button" disabled={saving}>{saving ? <LoaderCircle className="spin" size={18} /> : <Save size={18} />}{saving ? "保存中" : "保存配置"}</button>
-        </footer>
-      </form>
+          <footer className="settings-form-footer">
+            <span className={cn("save-status", message.includes("已保存") && "success")}>{message && (message.includes("已保存") ? <Check size={15} /> : null)}{message}</span>
+            <Button disabled={saving}>{saving ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}{saving ? "保存中" : "保存更改"}</Button>
+          </footer>
+        </form>
+      </div>
     </section>
   );
 }
