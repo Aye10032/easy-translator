@@ -91,7 +91,21 @@ input:focus, select:focus { border-color: #58a082; box-shadow: 0 0 0 3px rgba(51
 .security-note { display: flex; gap: 9px; margin-top: 12px; padding: 11px 13px; color: #547264; background: #f0f7f3; border-radius: 9px; font-size: 11px; }
 .security-note span, .security-note strong { display: block; }
 .security-note strong { color: #2e5f49; margin-bottom: 1px; }
-input[type="range"] { min-height: auto; padding: 0; accent-color: var(--green); box-shadow: none; border: 0; }
+.reasoning-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.reasoning-copy strong, .reasoning-copy span { display: block; }
+.reasoning-copy strong { color: #34413b; font-size: 12px; }
+.reasoning-copy span { margin-top: 4px; color: var(--muted); font-size: 11px; }
+.switch-control { position: relative; display: block; flex: none; cursor: pointer; }
+.switch-control input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.switch-track { display: flex; align-items: center; width: 42px; height: 24px; padding: 3px; border-radius: 999px; background: #cdd4d0; transition: .18s ease; }
+.switch-track span { width: 18px; height: 18px; border-radius: 50%; background: white; box-shadow: 0 1px 4px rgba(20,40,30,.2); transition: transform .18s ease; }
+.switch-control input:checked + .switch-track { background: var(--green); }
+.switch-control input:checked + .switch-track span { transform: translateX(18px); }
+.switch-control input:focus-visible + .switch-track { box-shadow: 0 0 0 3px rgba(51,140,102,.16); }
+.reasoning-effort { margin-top: 18px; }
+.reasoning-effort.disabled { color: #929a96; }
+.reasoning-effort select:disabled { cursor: not-allowed; background: #f4f6f4; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .form-footer { display: flex; align-items: center; justify-content: space-between; min-height: 78px; padding: 16px 30px; background: #fafbfa; }
 .status-message, .success-message { display: inline-flex; align-items: center; gap: 6px; max-width: 65%; color: #a0443d; font-size: 12px; }
 .success-message { color: var(--green); }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, Eye, EyeOff, LoaderCircle, Save, ShieldCheck } from "lucide-react";
 import { defaultSettings, providerLabels, providerPresets } from "../ai/providers";
-import type { ModelSettings, ProviderId } from "../ai/types";
+import type { ModelSettings, ProviderId, ReasoningEffort } from "../ai/types";
 import { getApiKey, loadSettings, saveApiKey, saveSettings } from "../lib/settings";
 
 export function SettingsPage() {
@@ -84,9 +84,29 @@ export function SettingsPage() {
         </div>
 
         <div className="form-section compact-section">
-          <div className="section-title"><span>3</span><div><h2>生成参数</h2><p>翻译通常适合较低的随机性。</p></div></div>
-          <label>Temperature：{settings.temperature.toFixed(1)}
-            <input type="range" min="0" max="1" step="0.1" value={settings.temperature} onChange={(event) => setSettings({ ...settings, temperature: Number(event.target.value) })} />
+          <div className="section-title"><span>3</span><div><h2>思索设置</h2><p>控制模型是否在回答前思索，以及投入的思维深度。</p></div></div>
+          <div className="reasoning-row">
+            <div className="reasoning-copy"><strong>开启思索</strong><span>仅对支持思索参数的模型生效。</span></div>
+            <label className="switch-control">
+              <input
+                type="checkbox"
+                checked={settings.reasoningEnabled}
+                onChange={(event) => setSettings({ ...settings, reasoningEnabled: event.target.checked })}
+              />
+              <span className="switch-track" aria-hidden="true"><span /></span>
+              <span className="sr-only">开启思索</span>
+            </label>
+          </div>
+          <label className={`reasoning-effort${settings.reasoningEnabled ? "" : " disabled"}`}>思维深度
+            <select
+              value={settings.reasoningEffort}
+              disabled={!settings.reasoningEnabled}
+              onChange={(event) => setSettings({ ...settings, reasoningEffort: event.target.value as ReasoningEffort })}
+            >
+              <option value="low">低 · 更快响应</option>
+              <option value="medium">中 · 平衡速度与质量</option>
+              <option value="high">高 · 更充分思索</option>
+            </select>
           </label>
         </div>
 

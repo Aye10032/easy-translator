@@ -9,7 +9,8 @@ export const providerPresets: Record<Exclude<ProviderId, "custom">, Pick<ModelSe
 export const defaultSettings: ModelSettings = {
   provider: "openai",
   ...providerPresets.openai,
-  temperature: 0.2,
+  reasoningEnabled: false,
+  reasoningEffort: "medium",
 };
 
 export const providerLabels: Record<ProviderId, string> = {

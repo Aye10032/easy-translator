@@ -1,6 +1,6 @@
 import { Store } from "@tauri-apps/plugin-store";
 import { defaultSettings } from "../ai/providers";
-import type { ModelSettings } from "../ai/types";
+import type { ModelSettings, ProviderId, ReasoningEffort } from "../ai/types";
 
 const SETTINGS_KEY = "model-settings";
 const API_KEYS_KEY = "api-keys";
@@ -13,8 +13,25 @@ function getStore() {
 
 export async function loadSettings(): Promise<ModelSettings> {
   try {
-    const stored = await (await getStore()).get<ModelSettings>(SETTINGS_KEY);
-    return stored ? { ...defaultSettings, ...stored } : defaultSettings;
+    const stored = await (await getStore()).get<Partial<ModelSettings>>(SETTINGS_KEY);
+    if (!stored) return defaultSettings;
+
+    const provider: ProviderId = ["openai", "deepseek", "qwen", "custom"].includes(stored.provider ?? "")
+      ? stored.provider as ProviderId
+      : defaultSettings.provider;
+    const reasoningEffort: ReasoningEffort = ["low", "medium", "high"].includes(stored.reasoningEffort ?? "")
+      ? stored.reasoningEffort as ReasoningEffort
+      : defaultSettings.reasoningEffort;
+
+    // Rebuild from known fields so retired generation options are removed
+    // when legacy settings are loaded and saved again.
+    return {
+      provider,
+      baseUrl: typeof stored.baseUrl === "string" ? stored.baseUrl : defaultSettings.baseUrl,
+      model: typeof stored.model === "string" ? stored.model : defaultSettings.model,
+      reasoningEnabled: typeof stored.reasoningEnabled === "boolean" ? stored.reasoningEnabled : defaultSettings.reasoningEnabled,
+      reasoningEffort,
+    };
   } catch {
     return defaultSettings;
   }

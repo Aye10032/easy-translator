@@ -1,10 +1,12 @@
 export type ProviderId = "openai" | "deepseek" | "qwen" | "custom";
+export type ReasoningEffort = "low" | "medium" | "high";
 
 export interface ModelSettings {
   provider: ProviderId;
   baseUrl: string;
   model: string;
-  temperature: number;
+  reasoningEnabled: boolean;
+  reasoningEffort: ReasoningEffort;
 }
 
 export interface TranslateInput {
