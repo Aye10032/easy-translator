@@ -15,7 +15,6 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { defaultProfile } from "../ai/providers";
-import { translateText } from "../ai/translate";
 import type { ModelProfile } from "../ai/types";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
@@ -130,6 +129,7 @@ export function TranslatePage() {
       const apiKey = await getApiKey(currentSettings.id);
       if (!apiKey) throw new Error("尚未配置 API Key，请先前往模型设置。");
 
+      const { translateText } = await import("../ai/translate");
       let content = "";
       for await (const chunk of translateText({
         text: source,

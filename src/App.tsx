@@ -1,12 +1,14 @@
+import { lazy, Suspense } from "react";
 import { Navigate, NavLink, Route, Routes } from "react-router-dom";
 import { History, Info, Languages, Settings } from "lucide-react";
 import { Toaster } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./components/ui/tooltip";
-import { AboutPage } from "./pages/AboutPage";
-import { HistoryPage } from "./pages/HistoryPage";
-import { SettingsPage } from "./pages/SettingsPage";
-import { TranslatePage } from "./pages/TranslatePage";
 import "./App.css";
+
+const AboutPage = lazy(() => import("./pages/AboutPage").then((module) => ({ default: module.AboutPage })));
+const HistoryPage = lazy(() => import("./pages/HistoryPage").then((module) => ({ default: module.HistoryPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((module) => ({ default: module.SettingsPage })));
+const TranslatePage = lazy(() => import("./pages/TranslatePage").then((module) => ({ default: module.TranslatePage })));
 
 const navigation = [
   { to: "/translate", label: "翻译", icon: Languages },
@@ -46,13 +48,15 @@ export default function App() {
         </aside>
 
         <main className="app-content">
-          <Routes>
-            <Route path="/translate" element={<TranslatePage />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="*" element={<Navigate to="/translate" replace />} />
-          </Routes>
+          <Suspense fallback={<div className="page-loading"><strong>正在加载页面</strong></div>}>
+            <Routes>
+              <Route path="/translate" element={<TranslatePage />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="*" element={<Navigate to="/translate" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
       <Toaster position="top-center" richColors closeButton />
