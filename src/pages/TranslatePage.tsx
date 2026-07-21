@@ -11,6 +11,8 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { defaultProfile } from "../ai/providers";
 import { translateText } from "../ai/translate";
@@ -203,7 +205,9 @@ export function TranslatePage() {
             </div>
 
             {translation ? (
-              <div className="translation-output">{translation}</div>
+              <div className="translation-output markdown-body">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{translation}</ReactMarkdown>
+              </div>
             ) : error ? (
               <div className="panel-state error-state"><div className="state-icon"><X size={20} /></div><strong>翻译没有完成</strong><p>{error}</p><Button asChild variant="secondary" size="sm"><Link to="/settings">检查模型设置</Link></Button></div>
             ) : translating ? (
