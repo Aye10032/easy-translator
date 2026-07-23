@@ -1,8 +1,9 @@
 [package]
 name = "easy-translater"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "A simple, focused desktop translation tool"
+authors = ["Aye10032"]
+repository = "https://github.com/Aye10032/easy-translator"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

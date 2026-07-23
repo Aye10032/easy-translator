@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getVersion } from "@tauri-apps/api/app";
-import { FileText, Languages } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { ExternalLink, FileText, GitFork, Languages, Package, UserRound } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -10,6 +11,8 @@ import {
   AlertDialogTrigger,
 } from "../components/ui/alert-dialog";
 import { Button } from "../components/ui/button";
+
+const GITHUB_URL = "https://github.com/Aye10032/easy-translator";
 
 export function AboutPage() {
   const [version, setVersion] = useState("0.1.0");
@@ -50,6 +53,28 @@ export function AboutPage() {
         <div>
           <div className="about-app-title"><h2 id="about-app-name">Easy Translator</h2><span>版本 {version}</span></div>
           <p>一个简洁、专注的本地桌面翻译工具。</p>
+        </div>
+      </section>
+
+      <section className="about-section" aria-labelledby="software-info-title">
+        <div className="about-section-heading">
+          <div><h2 id="software-info-title">软件信息</h2><p>了解当前版本、开发者与项目源代码。</p></div>
+        </div>
+
+        <div className="about-info-grid">
+          <div className="about-info-item">
+            <span className="about-info-icon"><Package size={18} /></span>
+            <div><small>当前版本</small><strong>{version}</strong></div>
+          </div>
+          <div className="about-info-item">
+            <span className="about-info-icon"><UserRound size={18} /></span>
+            <div><small>作者</small><strong>Aye10032</strong></div>
+          </div>
+          <button className="about-info-item about-info-link" type="button" onClick={() => { void openUrl(GITHUB_URL); }}>
+            <span className="about-info-icon"><GitFork size={18} /></span>
+            <div><small>开源项目</small><strong>GitHub</strong></div>
+            <ExternalLink className="about-info-external" size={15} />
+          </button>
         </div>
       </section>
 

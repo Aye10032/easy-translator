@@ -271,6 +271,18 @@ button:disabled { cursor: not-allowed; }
 .about-section-heading { padding: 20px 22px 16px; border-bottom: 1px solid var(--border); }
 .about-section-heading h2 { margin: 0; color: var(--foreground); font-size: 14px; }
 .about-section-heading p { margin: 4px 0 0; color: var(--muted-foreground); font-size: 9px; }
+.about-info-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 8px 6px; }
+.about-info-item { display: flex; min-width: 0; align-items: center; gap: 12px; padding: 14px 18px; color: var(--foreground); border: 0; background: transparent; text-align: left; }
+.about-info-item + .about-info-item { border-left: 1px solid var(--border); }
+.about-info-icon { display: grid; width: 28px; height: 28px; flex: none; place-items: center; color: var(--primary); }
+.about-info-item > div { min-width: 0; }
+.about-info-item small, .about-info-item strong { display: block; }
+.about-info-item small { margin-bottom: 3px; color: var(--muted-foreground); font-size: 8px; font-weight: 500; }
+.about-info-item strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.about-info-link { width: 100%; border-radius: 10px; font: inherit; cursor: pointer; transition: color .16s ease, background .16s ease; }
+.about-info-link:hover { color: var(--primary-strong); background: var(--primary-soft); }
+.about-info-link:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--primary), 0 0 0 4px var(--ring); }
+.about-info-external { flex: none; margin-left: auto; color: var(--muted-foreground); }
 .about-license-item { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 18px 22px; }
 .about-license-icon { display: grid; width: 42px; height: 42px; place-items: center; color: var(--primary); border-radius: 12px; background: var(--primary-soft); }
 .about-license-copy { min-width: 0; }
@@ -322,6 +334,9 @@ button:disabled { cursor: not-allowed; }
   .history-surface { grid-template-columns: 220px minmax(0, 1fr); }
   .history-detail-header { padding-inline: 16px; }
   .history-text-block { --history-scroll-shift: 9px; padding-inline: 16px; }
+  .about-info-grid { grid-template-columns: 1fr; padding: 6px 18px; }
+  .about-info-item { padding-inline: 4px; }
+  .about-info-item + .about-info-item { border-top: 1px solid var(--border); border-left: 0; }
 }
 
 @media (prefers-color-scheme: dark) {
