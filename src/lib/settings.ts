@@ -1,10 +1,12 @@
 import { Store } from "@tauri-apps/plugin-store";
 import { defaultProfile, defaultSettings } from "../ai/providers";
-import type { ModelProfile, ModelProfilesState, ModelSettings, ProviderId, ReasoningEffort } from "../ai/types";
+import { defaultTranslationToneSettings, translationTones } from "../ai/tones";
+import type { ModelProfile, ModelProfilesState, ModelSettings, ProviderId, ReasoningEffort, TranslationTone, TranslationToneSettings } from "../ai/types";
 
 const LEGACY_SETTINGS_KEY = "model-settings";
 const PROFILES_KEY = "model-profiles";
 const API_KEYS_KEY = "api-keys";
+const TRANSLATION_TONE_SETTINGS_KEY = "translation-tone-settings";
 const providerIds: ProviderId[] = ["openai", "deepseek", "qwen", "custom"];
 const reasoningEfforts: ReasoningEffort[] = ["low", "medium", "high"];
 let storePromise: Promise<Store> | undefined;
@@ -150,4 +152,45 @@ export async function saveApiKey(modelId: string, apiKey: string): Promise<void>
   const keys = (await store.get<Record<string, string>>(API_KEYS_KEY)) ?? {};
   await store.set(API_KEYS_KEY, { ...keys, [modelId]: apiKey });
   await store.save();
+}
+
+function normalizeTranslationToneSettings(stored?: Partial<TranslationToneSettings> | null): TranslationToneSettings {
+  const activeTone = translationTones.includes(stored?.activeTone as TranslationTone)
+    ? stored?.activeTone as TranslationTone
+    : defaultTranslationToneSettings.activeTone;
+  const prompts = stored?.prompts as Partial<Record<TranslationTone, unknown>> | undefined;
+
+  return {
+    activeTone,
+    prompts: {
+      conversational: typeof prompts?.conversational === "string" ? prompts.conversational : defaultTranslationToneSettings.prompts.conversational,
+      academic: typeof prompts?.academic === "string" ? prompts.academic : defaultTranslationToneSettings.prompts.academic,
+      original: typeof prompts?.original === "string" ? prompts.original : defaultTranslationToneSettings.prompts.original,
+    },
+  };
+}
+
+export async function loadTranslationToneSettings(): Promise<TranslationToneSettings> {
+  try {
+    const stored = await (await getStore()).get<Partial<TranslationToneSettings>>(TRANSLATION_TONE_SETTINGS_KEY);
+    return normalizeTranslationToneSettings(stored);
+  } catch {
+    return {
+      ...defaultTranslationToneSettings,
+      prompts: { ...defaultTranslationToneSettings.prompts },
+    };
+  }
+}
+
+export async function saveTranslationToneSettings(settings: TranslationToneSettings): Promise<TranslationToneSettings> {
+  const normalized = normalizeTranslationToneSettings(settings);
+  const store = await getStore();
+  await store.set(TRANSLATION_TONE_SETTINGS_KEY, normalized);
+  await store.save();
+  return normalized;
+}
+
+export async function setActiveTranslationTone(activeTone: TranslationTone): Promise<TranslationToneSettings> {
+  const current = await loadTranslationToneSettings();
+  return saveTranslationToneSettings({ ...current, activeTone });
 }

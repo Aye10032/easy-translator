@@ -7,6 +7,7 @@ import {
   EyeOff,
   KeyRound,
   LoaderCircle,
+  MessageSquareText,
   Plus,
   RefreshCw,
   Save,
@@ -17,7 +18,8 @@ import {
 import { toast } from "sonner";
 import { listAvailableModels } from "../ai/models";
 import { defaultProfile, providerLabels, providerPresets } from "../ai/providers";
-import type { ModelProfile, ProviderId, ReasoningEffort } from "../ai/types";
+import { defaultTranslationToneSettings, translationToneDescriptions, translationToneLabels, translationTones } from "../ai/tones";
+import type { ModelProfile, ProviderId, ReasoningEffort, TranslationToneSettings } from "../ai/types";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,12 +35,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Switch } from "../components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import { cn } from "../lib/utils";
-import { deleteModelProfile, getApiKey, loadModelProfiles, saveApiKey, saveModelProfile, setActiveModel } from "../lib/settings";
+import { deleteModelProfile, getApiKey, loadModelProfiles, loadTranslationToneSettings, saveApiKey, saveModelProfile, saveTranslationToneSettings, setActiveModel } from "../lib/settings";
 
 export function SettingsPage() {
+  const [activeSection, setActiveSection] = useState<"models" | "translation">("models");
   const [profiles, setProfiles] = useState<ModelProfile[]>([defaultProfile]);
   const [settings, setSettings] = useState<ModelProfile>(defaultProfile);
   const [apiKey, setApiKey] = useState("");
+  const [toneSettings, setToneSettings] = useState<TranslationToneSettings>(defaultTranslationToneSettings);
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -46,6 +50,8 @@ export function SettingsPage() {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [modelListMessage, setModelListMessage] = useState("");
   const [message, setMessage] = useState("");
+  const [toneSaving, setToneSaving] = useState(false);
+  const [toneMessage, setToneMessage] = useState("");
 
   function clearModelList() {
     setAvailableModels([]);
@@ -53,11 +59,12 @@ export function SettingsPage() {
   }
 
   useEffect(() => {
-    void loadModelProfiles()
-      .then(async (state) => {
+    void Promise.all([loadModelProfiles(), loadTranslationToneSettings()])
+      .then(async ([state, savedToneSettings]) => {
         const active = state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0];
         setProfiles(state.profiles);
         setSettings(active);
+        setToneSettings(savedToneSettings);
         setApiKey((await getApiKey(active.id)) ?? "");
       })
       .catch(() => setMessage("读取配置失败，请确认应用权限。"))
@@ -65,6 +72,7 @@ export function SettingsPage() {
   }, []);
 
   async function changeProfile(modelId: string) {
+    setActiveSection("models");
     if (modelId === settings.id) return;
     setMessage("");
     try {
@@ -86,6 +94,7 @@ export function SettingsPage() {
       const state = await saveModelProfile(profile);
       setProfiles(state.profiles);
       setSettings(profile);
+      setActiveSection("models");
       setApiKey("");
       setShowKey(false);
       clearModelList();
@@ -156,7 +165,7 @@ export function SettingsPage() {
       const state = await saveModelProfile(saved);
       setProfiles(state.profiles);
       setSettings(saved);
-      setMessage("所有更改均已保存");
+      setMessage("模型配置已保存");
       toast.success("模型配置已保存");
     } catch (error) {
       const detail = String(error);
@@ -164,6 +173,23 @@ export function SettingsPage() {
       toast.error("保存失败", { description: detail });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function submitToneSettings(event: React.FormEvent) {
+    event.preventDefault();
+    setToneSaving(true);
+    setToneMessage("");
+    try {
+      setToneSettings(await saveTranslationToneSettings(toneSettings));
+      setToneMessage("翻译偏好已保存");
+      toast.success("翻译偏好已保存");
+    } catch (error) {
+      const detail = String(error);
+      setToneMessage(`保存失败：${detail}`);
+      toast.error("保存失败", { description: detail });
+    } finally {
+      setToneSaving(false);
     }
   }
 
@@ -179,7 +205,7 @@ export function SettingsPage() {
 
           <div className="profile-list">
             {profiles.map((profile) => (
-              <button type="button" key={profile.id} className={cn("profile-list-item", settings.id === profile.id && "active")} onClick={() => void changeProfile(profile.id)}>
+              <button type="button" key={profile.id} className={cn("profile-list-item", activeSection === "models" && settings.id === profile.id && "active")} onClick={() => void changeProfile(profile.id)}>
                 <span className="profile-icon"><Bot size={17} /></span>
                 <span className="profile-copy"><strong>{profile.name}</strong><small>{profile.model}</small></span>
                 <ChevronRight size={15} />
@@ -187,9 +213,17 @@ export function SettingsPage() {
             ))}
           </div>
 
+          <div className="profile-preferences">
+            <div className="profile-preferences-heading"><span>翻译设置</span><small>适用于所有模型</small></div>
+            <button type="button" className={cn("profile-list-item", activeSection === "translation" && "active")} onClick={() => { setActiveSection("translation"); setToneMessage(""); }}>
+              <span className="profile-icon"><MessageSquareText size={17} /></span>
+              <span className="profile-copy"><strong>翻译语气</strong><small>三档语气与提示词</small></span>
+              <ChevronRight size={15} />
+            </button>
+          </div>
         </aside>
 
-        <form className="settings-surface" onSubmit={submit}>
+        {activeSection === "models" ? <form className="settings-surface" onSubmit={submit}>
           <div className="settings-surface-header">
             <div><span>正在编辑</span><h2>{settings.name}</h2></div>
             <AlertDialog>
@@ -243,13 +277,45 @@ export function SettingsPage() {
                 </Select>
               </label>
             </section>
+
           </div>
 
           <footer className="settings-form-footer">
             <span className={cn("save-status", message.includes("已保存") && "success")}>{message && (message.includes("已保存") ? <Check size={15} /> : null)}{message}</span>
             <Button disabled={saving}>{saving ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}{saving ? "保存中" : "保存更改"}</Button>
           </footer>
-        </form>
+        </form> : <form className="settings-surface" onSubmit={submitToneSettings}>
+          <div className="settings-surface-header">
+            <div><span>通用设置</span><h2>翻译偏好</h2></div>
+          </div>
+
+          <div className="settings-form-body">
+            <section className="setting-section">
+              <div className="setting-section-title"><span className="section-icon"><MessageSquareText size={18} /></span><div><h3>翻译语气提示词</h3><p>这些设置对所有模型生效。分别定制三档语气要求；留空代表不追加该档语气要求。</p></div></div>
+              <div className="tone-prompt-list">
+                {translationTones.map((tone) => (
+                  <label className="tone-prompt-field" key={tone}>
+                    <span><strong>{translationToneLabels[tone]}</strong><small>{translationToneDescriptions[tone]}</small></span>
+                    <textarea
+                      value={toneSettings.prompts[tone]}
+                      onChange={(event) => setToneSettings((current) => ({
+                        ...current,
+                        prompts: { ...current.prompts, [tone]: event.target.value },
+                      }))}
+                      placeholder="留空则不添加特殊语气要求"
+                      rows={3}
+                    />
+                  </label>
+                ))}
+              </div>
+            </section>
+          </div>
+
+          <footer className="settings-form-footer">
+            <span className={cn("save-status", toneMessage.includes("已保存") && "success")}>{toneMessage && (toneMessage.includes("已保存") ? <Check size={15} /> : null)}{toneMessage}</span>
+            <Button disabled={toneSaving}>{toneSaving ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />}{toneSaving ? "保存中" : "保存翻译偏好"}</Button>
+          </footer>
+        </form>}
       </div>
     </section>
   );

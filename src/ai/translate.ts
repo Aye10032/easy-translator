@@ -59,9 +59,10 @@ export async function* translateText(input: TranslateInput): AsyncGenerator<stri
     abortSignal: input.abortSignal,
     system: [
       "You are a professional translator.",
-      "Translate faithfully while preserving meaning, tone, paragraph breaks, and formatting.",
+      "Translate faithfully while preserving meaning, paragraph breaks, and formatting.",
+      input.toneInstruction?.trim() ? `Translation style requirement: ${input.toneInstruction.trim()}` : "",
       "Return only the translation without explanations or quotation marks.",
-    ].join(" "),
+    ].filter(Boolean).join(" "),
     prompt: `Source language: ${input.sourceLanguage}\nTarget language: ${input.targetLanguage}\n\nText:\n${input.text}`,
   });
 

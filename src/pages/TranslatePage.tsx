@@ -15,12 +15,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { toast } from "sonner";
 import { defaultProfile } from "../ai/providers";
-import type { ModelProfile } from "../ai/types";
+import { defaultTranslationToneSettings, translationToneLabels, translationTones } from "../ai/tones";
+import type { ModelProfile, TranslationTone, TranslationToneSettings } from "../ai/types";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../components/ui/tooltip";
 import { addTranslationHistory, getTranslationHistoryItem } from "../lib/history";
-import { getApiKey, loadModelProfiles, loadSettings, setActiveModel } from "../lib/settings";
+import { getApiKey, loadModelProfiles, loadSettings, loadTranslationToneSettings, setActiveModel, setActiveTranslationTone } from "../lib/settings";
 
 const languages = ["自动检测", "中文", "英语", "日语", "韩语", "法语", "德语", "西班牙语"];
 
@@ -51,6 +52,7 @@ export function TranslatePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [profiles, setProfiles] = useState<ModelProfile[]>([defaultProfile]);
   const [settings, setSettings] = useState<ModelProfile>(defaultProfile);
+  const [toneSettings, setToneSettings] = useState<TranslationToneSettings>(defaultTranslationToneSettings);
   const [sourceLanguage, setSourceLanguage] = useState("自动检测");
   const [targetLanguage, setTargetLanguage] = useState("英语");
   const [source, setSource] = useState("");
@@ -61,9 +63,10 @@ export function TranslatePage() {
   const restoredHistoryIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    void loadModelProfiles().then((state) => {
+    void Promise.all([loadModelProfiles(), loadTranslationToneSettings()]).then(([state, savedToneSettings]) => {
       setProfiles(state.profiles);
       setSettings(state.profiles.find((profile) => profile.id === state.activeModelId) ?? state.profiles[0]);
+      setToneSettings(savedToneSettings);
     });
   }, []);
 
@@ -102,6 +105,17 @@ export function TranslatePage() {
     }
   }
 
+  async function changeTone(activeTone: TranslationTone) {
+    const previous = toneSettings;
+    setToneSettings({ ...toneSettings, activeTone });
+    try {
+      setToneSettings(await setActiveTranslationTone(activeTone));
+    } catch (cause) {
+      setToneSettings(previous);
+      toast.error("语气设置保存失败", { description: String(cause) });
+    }
+  }
+
   function swapLanguages() {
     if (sourceLanguage === "自动检测") return;
     setSourceLanguage(targetLanguage);
@@ -137,6 +151,7 @@ export function TranslatePage() {
         targetLanguage,
         settings: currentSettings,
         apiKey,
+        toneInstruction: toneSettings.prompts[toneSettings.activeTone],
         abortSignal: controller.signal,
       })) {
         content = await revealChunk(content, chunk, controller.signal, setTranslation);
@@ -250,6 +265,12 @@ export function TranslatePage() {
           <div className="shortcut-hint"><kbd>Ctrl</kbd><span>+</span><kbd>Enter</kbd><span>开始翻译</span></div>
           <div className="workbench-actions">
             <div className="footer-model-tools">
+              <Select value={toneSettings.activeTone} onValueChange={(value) => void changeTone(value as TranslationTone)} disabled={translating}>
+                <SelectTrigger className="tone-select" aria-label="选择翻译语气"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {translationTones.map((tone) => <SelectItem value={tone} key={tone}>{translationToneLabels[tone]}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <Select value={settings.id} onValueChange={(value) => void changeProfile(value)} disabled={translating}>
                 <SelectTrigger className="model-select" aria-label="选择模型"><SelectValue /></SelectTrigger>
                 <SelectContent>

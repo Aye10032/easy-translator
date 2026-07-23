@@ -1,5 +1,11 @@
 export type ProviderId = "openai" | "deepseek" | "qwen" | "custom";
 export type ReasoningEffort = "low" | "medium" | "high";
+export type TranslationTone = "conversational" | "academic" | "original";
+
+export interface TranslationToneSettings {
+  activeTone: TranslationTone;
+  prompts: Record<TranslationTone, string>;
+}
 
 export interface ModelSettings {
   provider: ProviderId;
@@ -25,5 +31,6 @@ export interface TranslateInput {
   targetLanguage: string;
   settings: ModelSettings;
   apiKey: string;
+  toneInstruction?: string;
   abortSignal?: AbortSignal;
 }
