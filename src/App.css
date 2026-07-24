@@ -79,8 +79,8 @@ button:disabled { cursor: not-allowed; }
 .rail-navigation span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
 .app-content { height: 100%; margin-left: 76px; overflow: hidden; }
 
-.workspace-page, .settings-page, .history-page, .about-page { width: min(1240px, calc(100% - 64px)); margin: 0 auto; padding: 24px 0 28px; }
-.workspace-page { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+.settings-page, .history-page, .about-page { width: min(1240px, calc(100% - 64px)); margin: 0 auto; padding: 24px 0 28px; }
+.workspace-page { display: flex; width: calc(100% - 64px); height: 100%; min-height: 0; margin: 0 auto; padding: 24px 0 28px; flex-direction: column; }
 .model-select { width: 218px; }
 .tone-select { width: 176px; }
 
