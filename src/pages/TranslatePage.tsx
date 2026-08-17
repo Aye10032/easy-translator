@@ -216,7 +216,10 @@ export function TranslatePage() {
 
         <div className="translation-panels">
           <article className="translation-panel source-panel">
-            <div className="panel-heading"><span>原文</span><small>{source.length.toLocaleString()} 字符</small></div>
+            <div className="panel-heading">
+              <span>原文</span>
+              {source && <Button variant="ghost" size="sm" onClick={() => setSource("")}><X size={14} />清空</Button>}
+            </div>
             <textarea
               value={source}
               onChange={(event) => setSource(event.target.value)}
@@ -229,9 +232,8 @@ export function TranslatePage() {
               placeholder="输入或粘贴需要翻译的内容…"
               autoFocus
             />
-            <div className="panel-footer">
-              <span>支持段落与长文本</span>
-              {source && <Button variant="ghost" size="sm" onClick={() => setSource("")}><X size={14} />清空</Button>}
+            <div className="panel-footer source-footer">
+              <span>{source.length.toLocaleString()} 字符</span>
             </div>
           </article>
 
@@ -257,6 +259,7 @@ export function TranslatePage() {
 
             <div className="panel-footer result-footer">
               <span>{translation ? <><Check size={13} /> 已生成</> : "由 AI 生成的内容可能需要校对"}</span>
+              <span>{translation.length.toLocaleString()} 字符</span>
             </div>
           </article>
         </div>

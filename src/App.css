@@ -132,7 +132,7 @@ button:disabled { cursor: not-allowed; }
 .markdown-body hr { height: 1px; margin: 1.4em 0; border: 0; background: var(--border); }
 .markdown-body img { display: block; max-width: 100%; height: auto; margin: 0 0 1em; border-radius: 9px; }
 .panel-footer { display: flex; min-height: 32px; align-items: center; justify-content: space-between; color: var(--muted-foreground); font-size: 10px; }
-.result-footer { justify-content: flex-start; }
+.source-footer { justify-content: flex-end; }
 .result-footer span { display: inline-flex; align-items: center; gap: 5px; }
 .panel-state { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 26px; color: var(--muted-foreground); text-align: center; }
 .state-icon { display: grid; width: 48px; height: 48px; place-items: center; margin-bottom: 14px; color: #89919d; border: 1px solid var(--border); border-radius: 15px; background: var(--surface); box-shadow: 0 6px 22px rgba(31, 36, 45, .05); }
