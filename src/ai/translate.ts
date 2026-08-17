@@ -3,6 +3,11 @@ import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { streamText } from "ai";
 import type { ModelSettings, TranslateInput } from "./types";
 
+export interface ModelAvailabilityResult {
+  firstTokenLatencyMs: number;
+  totalDurationMs: number;
+}
+
 function addProviderReasoningControls(body: BodyInit | null | undefined, settings: ModelSettings) {
   if (typeof body !== "string") return body;
 
@@ -42,16 +47,49 @@ function getReasoningSetting(settings: ModelSettings) {
   return "none" as const;
 }
 
-export async function* translateText(input: TranslateInput): AsyncGenerator<string> {
-  const provider = createOpenAI({
-    apiKey: input.apiKey,
-    baseURL: input.settings.baseUrl.replace(/\/$/, ""),
-    name: input.settings.provider,
+function createConfiguredProvider(settings: ModelSettings, apiKey: string) {
+  return createOpenAI({
+    apiKey,
+    baseURL: settings.baseUrl.replace(/\/$/, ""),
+    name: settings.provider,
     fetch: (request, init) => tauriFetch(request, {
       ...init,
-      body: addProviderReasoningControls(init?.body, input.settings),
+      body: addProviderReasoningControls(init?.body, settings),
     }),
   });
+}
+
+export async function checkModelAvailability(settings: ModelSettings, apiKey: string): Promise<ModelAvailabilityResult> {
+  const checkSettings = { ...settings, reasoningEnabled: false };
+  const provider = createConfiguredProvider(checkSettings, apiKey);
+  const startedAt = performance.now();
+  let firstTokenAt: number | undefined;
+  let responseText = "";
+
+  const result = streamText({
+    model: provider.chat(checkSettings.model),
+    reasoning: getReasoningSetting(checkSettings),
+    prompt: "Reply with exactly: OK",
+    maxOutputTokens: 16,
+    timeout: 30_000,
+  });
+
+  for await (const chunk of result.textStream) {
+    if (chunk && firstTokenAt === undefined) firstTokenAt = performance.now();
+    responseText += chunk;
+  }
+
+  const completedAt = performance.now();
+  if (!responseText.trim()) throw new Error("模型已连接，但没有返回文本内容。");
+
+  return {
+    firstTokenLatencyMs: Math.round((firstTokenAt ?? completedAt) - startedAt),
+    totalDurationMs: Math.round(completedAt - startedAt),
+  };
+}
+
+export async function* translateText(input: TranslateInput): AsyncGenerator<string> {
+  const provider = createConfiguredProvider(input.settings, input.apiKey);
 
   const result = streamText({
     model: provider.chat(input.settings.model),

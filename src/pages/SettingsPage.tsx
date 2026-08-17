@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Activity,
   Bot,
   Check,
   ChevronRight,
@@ -19,6 +20,7 @@ import { toast } from "sonner";
 import { listAvailableModels } from "../ai/models";
 import { defaultProfile, providerLabels, providerPresets } from "../ai/providers";
 import { defaultTranslationToneSettings, translationToneDescriptions, translationToneLabels, translationTones } from "../ai/tones";
+import { checkModelAvailability } from "../ai/translate";
 import type { ModelProfile, ProviderId, ReasoningEffort, TranslationToneSettings } from "../ai/types";
 import {
   AlertDialog,
@@ -47,15 +49,29 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [checkingModel, setCheckingModel] = useState(false);
   const [availableModels, setAvailableModels] = useState<string[]>([]);
   const [modelListMessage, setModelListMessage] = useState("");
+  const [modelCheck, setModelCheck] = useState<{ status: "success" | "error"; message: string } | null>(null);
   const [message, setMessage] = useState("");
   const [toneSaving, setToneSaving] = useState(false);
   const [toneMessage, setToneMessage] = useState("");
+  const modelCheckSequence = useRef(0);
+
+  function clearModelCheck() {
+    modelCheckSequence.current += 1;
+    setCheckingModel(false);
+    setModelCheck(null);
+  }
 
   function clearModelList() {
     setAvailableModels([]);
     setModelListMessage("");
+    clearModelCheck();
+  }
+
+  function formatDuration(milliseconds: number) {
+    return milliseconds < 1_000 ? `${milliseconds} 毫秒` : `${(milliseconds / 1_000).toFixed(2)} 秒`;
   }
 
   useEffect(() => {
@@ -147,6 +163,35 @@ export function SettingsPage() {
       setModelListMessage(`获取失败：${detail}；仍可手动填写模型名称。`);
     } finally {
       setLoadingModels(false);
+    }
+  }
+
+  async function checkModel() {
+    if (!settings.baseUrl.trim() || !settings.model.trim() || !apiKey.trim()) {
+      setModelCheck({ status: "error", message: "请先填写 Base URL、模型名称和 API Key。" });
+      return;
+    }
+
+    const checkSequence = ++modelCheckSequence.current;
+    setCheckingModel(true);
+    setModelCheck(null);
+    try {
+      const result = await checkModelAvailability({
+        ...settings,
+        baseUrl: settings.baseUrl.trim(),
+        model: settings.model.trim(),
+      }, apiKey.trim());
+      if (checkSequence !== modelCheckSequence.current) return;
+      const message = `模型可用 · 首字延迟 ${formatDuration(result.firstTokenLatencyMs)} · 完成耗时 ${formatDuration(result.totalDurationMs)}`;
+      setModelCheck({ status: "success", message });
+      toast.success("模型检查通过", { description: message });
+    } catch (error) {
+      if (checkSequence !== modelCheckSequence.current) return;
+      const detail = error instanceof Error ? error.message : String(error);
+      setModelCheck({ status: "error", message: `检查失败：${detail}` });
+      toast.error("模型不可用", { description: detail });
+    } finally {
+      if (checkSequence === modelCheckSequence.current) setCheckingModel(false);
     }
   }
 
@@ -256,9 +301,16 @@ export function SettingsPage() {
               </div>
               <label className="field-label field-spaced"><span>Base URL</span><Input value={settings.baseUrl} onChange={(event) => { setSettings({ ...settings, baseUrl: event.target.value }); clearModelList(); }} placeholder="https://api.example.com/v1" /></label>
               <div className="field-label field-spaced"><span>模型名称</span>
-                <div className="model-input-row"><Input value={settings.model} onChange={(event) => setSettings({ ...settings, model: event.target.value })} placeholder="model-name" /><Button type="button" variant="secondary" onClick={() => void fetchModels()} disabled={loadingModels}>{loadingModels ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{loadingModels ? "获取中" : "获取列表"}</Button></div>
-                {availableModels.length > 0 && <Select value={availableModels.includes(settings.model) ? settings.model : undefined} onValueChange={(model) => setSettings({ ...settings, model })}><SelectTrigger className="available-model-select"><SelectValue placeholder="从可用模型中选择…" /></SelectTrigger><SelectContent>{availableModels.map((model) => <SelectItem value={model} key={model}>{model}</SelectItem>)}</SelectContent></Select>}
+                <div className="model-input-row">
+                  <Input value={settings.model} onChange={(event) => { setSettings({ ...settings, model: event.target.value }); clearModelCheck(); }} placeholder="model-name" />
+                  <div className="model-input-actions">
+                    <Button type="button" variant="secondary" onClick={() => void checkModel()} disabled={checkingModel}>{checkingModel ? <LoaderCircle className="spin" size={15} /> : <Activity size={15} />}{checkingModel ? "检查中" : "检查模型"}</Button>
+                    <Button type="button" variant="secondary" onClick={() => void fetchModels()} disabled={loadingModels}>{loadingModels ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{loadingModels ? "获取中" : "获取列表"}</Button>
+                  </div>
+                </div>
+                {availableModels.length > 0 && <Select value={availableModels.includes(settings.model) ? settings.model : undefined} onValueChange={(model) => { setSettings({ ...settings, model }); clearModelCheck(); }}><SelectTrigger className="available-model-select"><SelectValue placeholder="从可用模型中选择…" /></SelectTrigger><SelectContent>{availableModels.map((model) => <SelectItem value={model} key={model}>{model}</SelectItem>)}</SelectContent></Select>}
                 {modelListMessage && <small className={cn("field-message", availableModels.length > 0 && "success")}>{modelListMessage}</small>}
+                {modelCheck && <small className={cn("field-message", modelCheck.status === "success" && "success")} role={modelCheck.status === "error" ? "alert" : "status"}>{modelCheck.message}</small>}
               </div>
             </section>
 
